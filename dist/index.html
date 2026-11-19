@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Studio pribadi untuk merangkai prompt fotografi arsitektur dan lanskap.">
+  <title>Othernoon — Prompt Studio</title>
+  <link rel="stylesheet" href="./studio.css">
+  <script type="module" src="./studio.mjs"></script>
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <a class="brand" href="./" aria-label="Othernoon"><span class="mark" aria-hidden="true">◐</span> othernoon<span class="brand-divider"></span><span class="brand-caption">Prompt Studio</span></a>
+    <button type="button" id="library-open" class="button subtle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM3 4h18v3H3zM9 11h6"/></svg> Pustaka <span id="library-count"></span></button>
+  </div></header>
+  <main>
+    <div class="intro">
+      <div><h1>Prompt Studio<span>.</span></h1><p>Rangkai prompt fotografi arsitektur, satu adegan dalam satu waktu.</p></div>
+      <div class="format"><span class="frame" aria-hidden="true"></span> Landscape 16:9</div>
+    </div>
+    <div class="workspace">
+      <form id="settings">
+        <section class="panel composition" aria-labelledby="composition-title">
+          <div class="section-heading"><h2 id="composition-title">Master komposisi</h2><p>Pilih sudut pandang dan struktur utama foto.</p></div>
+          <div id="masters" class="master-grid"></div>
+        </section>
+        <section class="panel scene" aria-labelledby="scene-title">
+          <div class="section-heading"><h2 id="scene-title">Adegan</h2><p>Tulis detail adegan dalam bahasa Inggris.</p></div>
+          <div class="fields" id="scene-fields"></div>
+        </section>
+        <section class="panel atmosphere" aria-labelledby="atmosphere-title">
+          <div class="section-heading"><h2 id="atmosphere-title">Warna &amp; atmosfer</h2></div>
+          <label class="field">Preset warna<select name="preset" id="preset"></select></label>
+          <p class="hint" id="preset-hint"></p>
+          <div class="fields" id="atmosphere-fields"></div>
+        </section>
+        <details class="panel advanced">
+          <summary>Pengaturan lanjutan</summary>
+          <div class="fields" id="advanced-fields"></div>
+          <label class="check" id="rear-field"><input name="rear" type="checkbox"> Tampilkan pandangan ke halaman belakang melalui kaca</label>
+        </details>
+        <div class="form-actions"><button type="submit" class="button primary">Rangkai prompt</button><button type="button" id="reset" class="button neutral">Atur ulang master</button></div>
+      </form>
+      <aside class="preview panel" aria-label="Pratinjau prompt">
+        <div class="preview-header">
+          <div class="section-heading"><h2>Pratinjau prompt</h2><p id="preview-meta"></p></div>
+          <button type="button" id="copy" class="button primary"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 5V4H4v12h1"/></svg>Salin prompt</button>
+        </div>
+        <div class="detail-control">
+          <label for="detail-level">Prompt Detail Level</label>
+          <select id="detail-level" aria-describedby="detail-description"></select>
+          <p id="detail-description"></p>
+        </div>
+        <div id="issues" aria-live="polite" hidden></div>
+        <div class="prompt" id="prompt" tabindex="0" lang="en"></div>
+        <div class="preview-footer">
+          <span id="word-count"></span>
+          <div class="preview-actions">
+            <details class="export" id="export-menu"><summary class="button neutral">Ekspor</summary><div><button type="button" data-export="txt">Unduh .txt</button><button type="button" data-export="md">Unduh .md</button></div></details>
+            <button type="button" id="save-open" class="button neutral">Simpan preset</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <dialog id="save-dialog">
+    <form id="save-form">
+      <div class="dialog-heading"><h2>Simpan preset</h2><button type="button" class="close" data-close="save-dialog" aria-label="Tutup">×</button></div>
+      <label class="field">Nama preset<input name="title" required maxlength="100"></label>
+      <label class="field">Tag<input name="tags" placeholder="Pisahkan dengan koma" maxlength="160"></label>
+      <label class="field">Catatan<textarea name="notes" maxlength="1000"></textarea></label>
+      <label class="field">Penilaian<select name="status"><option value="draft">Draft</option><option value="tested">Test</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>
+      <button class="button primary">Simpan</button>
+    </form>
+  </dialog>
+  <dialog id="library-dialog" class="library">
+    <div class="dialog-heading"><h2>Pustaka preset</h2><button type="button" class="close" data-close="library-dialog" aria-label="Tutup">×</button></div>
+    <p class="hint">Preset tersimpan di browser ini. Unduh cadangan untuk memindahkannya.</p>
+    <div class="library-toolbar">
+      <input type="search" id="library-search" aria-label="Cari preset" placeholder="Cari preset, tag, atau catatan">
+      <button class="button neutral" id="backup" type="button">Cadangkan</button>
+      <label class="button neutral import">Impor<input type="file" id="import" accept=".json,application/json"></label>
+    </div>
+    <div id="library-list"></div>
+    <div id="compare" hidden><h3>Bandingkan versi</h3><p class="hint" id="compare-hint"></p><dl id="compare-fields"></dl><div class="compare-prompts" id="compare-prompts"></div></div>
+  </dialog>
+  <div id="toast" role="status"></div>
+</body>
+</html>
