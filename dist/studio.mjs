@@ -1,11 +1,12 @@
 import { assemble, fresh, masters, presets } from './engine.mjs';
+import { families, styles, controls, options, multiChoices, catalogDefaults, resolveCatalog, validCatalog, swatches } from './catalog.mjs';
 import { detailLevels } from './prompt-detail.mjs';
 
 const $ = id => document.getElementById(id);
 const settings = $('settings');
 const detailDescriptions = {
   compact: 'Paling ringkas, dengan aturan wajib dan inti fotografi.',
-  standard: 'Menggabungkan arahan yang berulang dengan makna dan prioritas yang sama.',
+  standard: 'Versi ringkas eksperimental. Gunakan Full Master untuk teks kanonik.',
   full: 'Menampilkan teks modul asli untuk audit.'
 };
 const fields = [
@@ -37,6 +38,8 @@ const dateFormat = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeS
 const compareIds = new Set();
 let state = fresh();
 let result;
+let catalogFamily = "";
+let warningPrompt = "";
 let timer;
 let library = readLibrary();
 
@@ -84,13 +87,118 @@ function init() {
     $(group + '-fields').append(wrapper);
   }
   for (const [value, label] of Object.entries(detailLevels)) $('detail-level').add(new Option(label, value));
+  initCatalog();
   updateForm();
   renderLibrary();
+}
+
+function initCatalog() {
+  const family = $('catalog-family');
+  family.add(new Option('Tanpa katalog', ''));
+  for (const row of families) family.add(new Option(row.name, row.id));
+  family.addEventListener('change', () => {
+    catalogFamily = family.value;
+    setStyle('');
+  });
+  $('catalog-style').addEventListener('change', event => setStyle(event.target.value));
+  $('catalog-reset').addEventListener('click', () => {
+    state.dna = {};
+    updateForm();
+  });
+  const groups = [
+    ['Warna & cahaya', ['palette', 'lighting', 'atmosphere', 'emotion']],
+    ['Lanskap & cuaca', ['landscape', 'environment', 'openness', 'season', 'sky', 'water', 'additional_mist']],
+    ['Material & taman', ['materials', 'hardscape', 'botanical_species', 'planting_density', 'ground_cover']],
+    ['Satwa', ['wildlife', 'wildlife_placement']]
+  ];
+  for (const [title, keys] of groups) {
+    const group = el('fieldset', '', 'dna-group');
+    group.append(el('legend', title));
+    const fields = el('div', '', 'fields');
+    for (const key of keys) fields.append(createDnaControl(key, controls[key]));
+    group.append(fields);
+    $('catalog-options').append(group);
+  }
+}
+
+function createDnaControl(key, label) {
+  const wrapper = el('label', label, 'field');
+  const select = el('select');
+  select.id = 'dna-' + key;
+  select.multiple = multiChoices.has(key);
+  if (select.multiple) {
+    select.size = 3;
+    wrapper.append(el('small', 'Gunakan Ctrl atau ⌘ untuk beberapa pilihan.'));
+  } else {
+    select.add(new Option('Tanpa pilihan', ''));
+  }
+  for (const row of options[key]) select.add(new Option(row.label, row.id));
+  select.addEventListener('change', () => {
+    if (!state.styleId) return;
+    const ids = [...select.selectedOptions].map(option => option.value).filter(Boolean);
+    const original = catalogDefaults(state.styleId)[key] ?? [];
+    if (ids.length === original.length && ids.every(id => original.includes(id))) delete state.dna[key];
+    else state.dna[key] = ids;
+    updateSwatches();
+    render();
+  });
+  wrapper.append(select);
+  return wrapper;
+}
+
+function setStyle(styleId) {
+  if (styleId) {
+    if (!state.styleId) state.detailLevel = 'full';
+    state.styleId = styleId;
+    state.dna = {};
+  } else {
+    delete state.styleId;
+    delete state.dna;
+  }
+  updateForm();
+}
+
+function updateSwatches() {
+  $('catalog-swatches').replaceChildren();
+  if (!state.styleId) return;
+  const selected = resolveCatalog(state).selected.palette ?? [];
+  for (const id of selected) {
+    for (const color of swatches(id)) {
+      const sample = el('span');
+      sample.style.backgroundColor = color.hex;
+      sample.title = color.hex;
+      $('catalog-swatches').append(sample);
+    }
+  }
+}
+
+function updateCatalog() {
+  if (state.styleId) catalogFamily = styles.get(state.styleId).family_id;
+  $('catalog-family').value = catalogFamily;
+  const style = $('catalog-style');
+  style.replaceChildren(new Option('Pilih preset', ''));
+  for (const row of styles.values()) {
+    if (row.family_id === catalogFamily) style.add(new Option(row.name, row.id));
+  }
+  style.disabled = !catalogFamily;
+  style.value = state.styleId ?? '';
+  $('catalog-dna').hidden = !state.styleId;
+  $('preset').closest('label').hidden = Boolean(state.styleId);
+  $('preset-hint').hidden = Boolean(state.styleId);
+  if (!state.styleId) return;
+  const { selected } = resolveCatalog(state);
+  for (const key of Object.keys(controls)) {
+    for (const choice of $('dna-' + key).options) {
+      choice.selected = choice.value ? selected[key]?.includes(choice.value) ?? false : !selected[key]?.length;
+    }
+  }
+  updateSwatches();
 }
 
 function updateForm() {
   settings.elements.master.value = state.master;
   $('preset').value = state.presetId;
+  updateCatalog();
   settings.elements.rear.checked = state.rearTransparency;
   $('rear-field').hidden = state.master !== 'exterior_window';
   settings.elements.details.closest('label').hidden = state.master === 'landscape_architecture';
@@ -106,7 +214,8 @@ function render(openPhoto) {
   for (const [, key] of fields) {
     settings.elements[key].placeholder = values[key] || (key === 'additional' ? 'Misalnya, subtle spring blossoms framing the upper edge' : 'Opsional');
   }
-  $('preview-meta').textContent = master.name + ' v' + master.version + ' · Fotografi v' + photo.version;
+  const styleName = styles.get(state.styleId)?.name;
+  $('preview-meta').textContent = [master.name + ' v' + master.version, styleName, 'Fotografi v' + photo.version].filter(Boolean).join(' · ');
   $('word-count').textContent = prompt ? new Intl.NumberFormat('id-ID').format(prompt.split(/\s+/).length) + ' kata' : '0 kata';
   const issues = [...errors, ...warnings];
   $('issues').hidden = !issues.length;
@@ -122,26 +231,34 @@ function render(openPhoto) {
         const details = el('details');
         details.open = Boolean(photoOpen);
         const summary = el('summary', heading);
-        summary.append(el('span', detailLevel === 'full' ? 'Terkunci' : detailLevels[detailLevel], 'lock'));
         details.append(summary, el('p', lines.join('\n').trim()));
         $('prompt').append(details);
       } else {
         const section = el('section');
         const [title, body] = lines.length ? [heading, lines.join('\n')] : [heading.split(': ')[0] + ':', heading.split(': ').slice(1).join(': ')];
         const h3 = el('h3', title);
-        if (/^(CAMERA|COMPOSITION|FOREGROUND COMPRESSION)/.test(title)) h3.append(el('span', 'Terkunci', 'lock'));
         section.append(h3, el('p', body));
         $('prompt').append(section);
       }
     }
   }
-  $('copy').disabled = !prompt;
-  $('save-open').disabled = !prompt;
-  for (const action of document.querySelectorAll('[data-export]')) action.disabled = !prompt;
+  const requiresConfirmation = Boolean(prompt && state.styleId && warnings.length);
+  if (!requiresConfirmation || warningPrompt !== prompt) $('accept-warnings').checked = false;
+  warningPrompt = requiresConfirmation ? prompt : '';
+  $('warning-confirm').hidden = !requiresConfirmation;
+  updateOutputActions();
 }
+
+function updateOutputActions() {
+  const allowed = result.prompt && ($('warning-confirm').hidden || $('accept-warnings').checked);
+  for (const action of [$('copy'), $('save-open'), ...document.querySelectorAll('[data-export]')]) action.disabled = !allowed;
+}
+
+$('accept-warnings').addEventListener('change', updateOutputActions);
 
 settings.addEventListener('input', event => {
   const { name, value, checked } = event.target;
+  if (!name) return;
   if (name === 'master') {
     for (const key of ['subject', 'style', 'materials', 'environment', 'landscape', 'details', 'foreground']) delete state.overrides[key];
     state.master = value;
@@ -170,11 +287,12 @@ settings.addEventListener('submit', event => {
   render();
   $('prompt').scrollTop = 0;
   if (matchMedia('(max-width:850px)').matches) document.querySelector('.preview').scrollIntoView({ block: 'start' });
-  if (result.prompt) toast('Prompt siap disalin.');
+  if (!$('copy').disabled) toast('Prompt siap disalin.');
 });
 
 $('reset').addEventListener('click', () => {
   state = { ...fresh(state.master), detailLevel: state.detailLevel };
+  catalogFamily = '';
   $('preset-hint').textContent = '';
   updateForm();
   toast('Pengaturan master dipulihkan.');
@@ -228,6 +346,7 @@ function validSnapshot(item) {
     ['masterVersion', 'photographicVersion', 'prompt', 'status', 'tags', 'notes'].every(key => typeof item[key] === 'string') &&
     item.prompt.trim() && saved && masters.some(master => master.id === saved.master) &&
     presets.some(preset => preset.id === saved.presetId) && typeof saved.rearTransparency === 'boolean' &&
+    validCatalog(saved) &&
     (saved.detailLevel === undefined || Object.hasOwn(detailLevels, saved.detailLevel)) &&
     saved.overrides && typeof saved.overrides === 'object' && !Array.isArray(saved.overrides) &&
     Object.entries(saved.overrides).every(([key, value]) => Object.hasOwn(fieldNames, key) && typeof value === 'string');
@@ -258,7 +377,7 @@ $('library-open').addEventListener('click', () => { renderLibrary(); $('library-
 $('library-search').addEventListener('input', renderLibrary);
 $('save-open').addEventListener('click', () => {
   $('save-form').reset();
-  $('save-form').elements.title.value = result.master.name + ' · ' + $('preset').selectedOptions[0].textContent;
+  $('save-form').elements.title.value = result.master.name + ' · ' + (styles.get(state.styleId)?.name ?? $('preset').selectedOptions[0].textContent);
   $('save-dialog').showModal();
 });
 for (const close of document.querySelectorAll('[data-close]')) close.onclick = () => $(close.dataset.close).close();
@@ -306,6 +425,7 @@ function renderLibrary() {
     selectLabel.append(selection);
     const load = button('Muat', () => {
       state = { ...structuredClone(item.state), detailLevel: item.state.detailLevel ?? 'full' };
+      catalogFamily = '';
       $('preset-hint').textContent = '';
       updateForm();
       $('prompt').scrollTop = 0;
@@ -336,7 +456,12 @@ function renderCompare() {
   const changes = [
     ['Master', av.name + ' v' + a.masterVersion, bv.name + ' v' + b.masterVersion],
     ['Modul fotografi', a.photographicVersion, b.photographicVersion],
-    ['Preset warna', a.state.presetId, b.state.presetId],
+    ['Preset visual', styles.get(a.state.styleId)?.name ?? a.state.presetId, styles.get(b.state.styleId)?.name ?? b.state.presetId],
+    ...Object.entries(controls).map(([key, label]) => {
+      const selected = item => item.state.styleId ? (resolveCatalog(item.state).selected[key] ?? []).map(id =>
+        options[key].find(option => option.id === id).label).join(', ') : '';
+      return [label, selected(a), selected(b)];
+    }),
     ['Prompt Detail Level', detailLevels[a.state.detailLevel ?? 'full'], detailLevels[b.state.detailLevel ?? 'full']],
     ['Pandangan ke halaman belakang', String(a.state.rearTransparency), String(b.state.rearTransparency)],
     ...Object.entries(fieldNames).map(([key, label]) => [label, av[key] || '—', bv[key] || '—'])

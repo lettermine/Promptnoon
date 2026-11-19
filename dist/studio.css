@@ -21,3 +21,37 @@ dialog{color:var(--text);background:var(--panel);border:1px solid var(--line);bo
 .detail-control label{font-size:.875rem;font-weight:700}
 .detail-control select{font-size:.875rem}
 .detail-control p{grid-column:1/-1;margin:0;color:var(--muted);font-size:.875rem}
+.catalog-dna{margin-top:14px}.catalog-dna summary{font-weight:600;margin-bottom:10px}
+.catalog-dna small{font-weight:400;color:var(--muted)}
+.catalog-dna select[multiple]{background-image:none;padding:4px;height:auto}
+.palette-swatches{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0}
+.palette-swatches span{width:24px;height:20px;border:1px solid var(--line);border-radius:3px}
+.warning-confirm{margin:10px 16px}
+
+:root{--canvas:#f4f2ec;--panel:#fffefa;--well:#f7f5ef;--line:#dedbd2;--text:#262521;--muted:#625f56;--accent:#dbea9c;--ink:#263211;--green:#485a2a;color-scheme:light}
+body{background:var(--canvas)}
+.top{background:#fbfaf5}.top-inner,main{max-width:1390px}
+.brand{font-size:1.45rem}.mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#354522;color:#e4f1ac;font-size:1.45rem}
+.intro{padding-block:clamp(2.3rem,5vw,4.4rem) 1.45rem}.intro h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(3rem,7vw,6.75rem);letter-spacing:-.085em}.intro h1 span{color:#74924b}.intro p{margin-top:.9rem}.format{color:#44592c;background:#eff2e5;border-color:#d7deca}
+.section-nav{display:flex;gap:5px;overflow:auto;margin-bottom:18px;padding:2px 2px 11px;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.section-nav a{white-space:nowrap;font-weight:700;font-size:.875rem;padding:8px 12px;border-radius:7px}
+.section-nav a:hover,.section-nav a:focus-visible{background:#e5ebd6}
+.workspace{grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:18px}
+.panel{border-radius:14px;box-shadow:0 1px 2px #29241608}
+section[id],aside[id]{scroll-margin-top:16px}
+section:target,.preview:target{outline:2px solid #829762;outline-offset:3px}
+.master{min-height:117px;background:var(--panel);padding:13px 14px}.master:has(:checked){background:#eef2e2;border-color:#819563}.master svg{color:var(--green)}.master input,.check input{accent-color:#627b42}.master:hover{border-color:#849572}
+.primary{background:#dce9a8;color:#263211}.primary:hover{background:#e7efbf}
+.neutral:hover,.subtle:hover{background:#edebdf}.subtle span{color:var(--green)}
+input::placeholder,textarea::placeholder{color:#69675e}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23625f56' stroke-width='1.5'/%3E%3C/svg%3E")}
+.preview{background:#232921;color:#f5f3e9;border-color:#30382b;--line:#454f3e;--muted:#c2c8b6;--well:#1b221a;--text:#f5f3e9;--accent:#e0edaf;color-scheme:dark}
+.preview .neutral:hover{background:#3b4735}.preview .prompt{background:#1b221a}.preview .prompt p{color:#e0e3d6}.preview .prompt h3{letter-spacing:.015em}
+.preview .prompt{height:clamp(340px,54vh,700px)}.preview-header{padding:19px 20px}.preview-footer,.detail-control{padding-inline:20px}
+.catalog-dna{border-top:1px solid var(--line);padding-top:13px}.catalog-dna summary{color:var(--green)}
+#catalog-options{display:block}.dna-group{min-inline-size:0;margin:0 0 12px;padding:9px 11px 11px;border:1px solid var(--line);border-radius:9px}.dna-group legend{font-size:.875rem;font-weight:700;padding:0 5px}
+#catalog-reset{margin-top:3px}.palette-swatches:empty{display:none}.palette-swatches span{width:28px;height:15px}
+.mobile-preview{display:none}
+@media(max-width:850px){.workspace{grid-template-columns:1fr;padding-bottom:6rem}.preview .prompt{height:480px}.mobile-preview{display:inline-flex;position:fixed;z-index:4;bottom:14px;right:14px;box-shadow:0 2px 12px #2225}.mobile-preview:hover{background:#e7efbf}body:has(#pratinjau:target) .mobile-preview{display:none}}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+:where(body):not(.preview) :is(.section-nav a,.master,.field input,.field select,.field textarea):focus-visible{outline-color:#647a43}
