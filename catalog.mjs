@@ -1,3 +1,4 @@
+import { paletteBehavior } from './palette-behavior.mjs';
 import data from './seed-catalog.mjs';
 
 const byId = rows => new Map(rows.map(row => [row.id, row]));
@@ -39,17 +40,18 @@ export function resolveCatalog(state) {
   const selected = { ...catalogDefaults(state.styleId), ...state.dna };
   const entries = key => [...new Set(selected[key] ?? [])].map(id => dna.get(id));
   const text = key => entries(key).map(row => row.english_prompt).join(', ');
-  const palette = (selected.palette ?? []).map(id => palettes.get(id).name);
+  const palette = (selected.palette ?? []).map(id => ({ id, role: 'primary', colors: paletteBehavior[id][0], behavior: paletteBehavior[id][1] }));
   const primary = styles.get(state.styleId).primary_palette_id;
   const renderedPalettes = new Set(selected.palette);
   if (palette.length === 1 && (state.dna.palette === undefined || selected.palette[0] === primary)) {
     for (const link of data.preset_palette_links.filter(row => row.preset_id === state.styleId)) {
       if (renderedPalettes.has(link.palette_id)) continue;
       renderedPalettes.add(link.palette_id);
-      palette.push(palettes.get(link.palette_id).name + ' (' + link.role + ')');
+      const [colors, behavior] = paletteBehavior[link.palette_id];
+      palette.push({ id: link.palette_id, role: link.role, colors, behavior });
     }
   }
-  return { selected, entries, text, palette: palette.join(', ') };
+  return { selected, entries, text, palette };
 }
 
 export function swatches(id) {

@@ -1,6 +1,6 @@
 import { controls, resolveCatalog, validCatalog } from './catalog.mjs';
 import { describe, describePalette, describeScene, describeTime, describeWeather, fragment, renderMaster } from './compiler-language.mjs';
-import { resolveCompatibility } from './compiler-compatibility.mjs';
+import { geographicRelationships, resolveCompatibility } from './compiler-compatibility.mjs';
 import photo from './photographic-v2.0.mjs';
 import { templates } from './masters.mjs';
 import { presets as approved } from './presets.mjs';
@@ -68,7 +68,7 @@ export function assemble(state) {
   };
   const values = { ...master, ...defaults, ...Object.fromEntries(Object.entries(presetValues).filter(([, value]) => value)), ...overrides };
   if (catalog) {
-    values.palette = overrides.palette || catalog.palette;
+    values.palette = overrides.palette || catalog.palette.map(item => item.colors).join('; ');
     values.lightingCharacter = overrides.lightingCharacter || catalog.text('lighting');
     values.weather = overrides.weather || catalog.text('atmosphere') || 'clear';
     values.mood = overrides.mood || catalog.text('emotion') || defaults.mood;
@@ -94,7 +94,8 @@ export function assemble(state) {
   if (diagonal.test(custom)) errors.push('Sudut khusus bertentangan dengan kamera frontal. Hapus arahan sudut tersebut atau gunakan mode eksperimen saat tersedia.');
   if (aspect.test(custom)) errors.push('Rasio output terkunci pada 16:9. Hapus rasio atau orientasi lain dari isian.');
   const wilderness = /\b(?:dense remote forest|remote wilderness|remote forest|untouched jungle|tropical jungle|jungle|alpine meadow)\b/i;
-  if (urban && wilderness.test([values.environment, values.landscape, values.additional].join(' '))) {
+  const builtContext = /\b(?:urban|suburban|town|village|street|city|neighbou?rhood|settlement)\b/i;
+  if (urban && wilderness.test(values.environment) && !builtContext.test(values.environment)) {
     errors.push('Master ini memerlukan konteks perkotaan. Pilih lingkungan urban atau gunakan Landscape Architecture untuk lokasi terpencil.');
   }
   if (urban && /\b(?:broad|prominent|wide|glossy)\b.{0,28}\b(?:road|roadway|wet pavement|grass|reflections)\b/i.test([values.foreground, values.additional].join(' '))) {
@@ -165,6 +166,10 @@ export function assemble(state) {
         details.push(...emit(key));
       }
     }
+    details.push(...geographicRelationships(
+      { ...values, landscape: overrides.landscape || (!ignored.has('landscape') && catalog?.text('landscape')) || values.landscape },
+      selected, ignored, urban, overrides
+    ));
     if (remoteBackground) details.unshift('Keep any secluded natural scenery distant and secondary to the urban setting.');
     if (details.length) {
       blocks.push('ENVIRONMENTAL DETAILS:\n' + details.join(' ') +
@@ -186,7 +191,7 @@ export function assemble(state) {
     describeTime(values.timeOfDay),
     isCatalogAtmosphere ? emit('atmosphere').join(' ') : describeWeather(values.weather),
     (!overrides.lightingCharacter && emit('lighting')[0]) || describe('lighting', light),
-    describePalette(values.palette),
+    describePalette(values.palette, overrides.palette ? [] : catalog?.palette),
     overrides.season ? describe('season', values.season) : emit('season').join(' '),
     fog && !isCatalogAtmosphere ? 'Keep atmospheric diffusion in the background and preserve a clear view of the main subject.' : '',
     index === 1 && (ignored.has('lighting') || overrides.lightingCharacter || !selected.lighting?.includes('lighting.warm_interior_cool_exterior'))

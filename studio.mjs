@@ -260,9 +260,7 @@ settings.addEventListener('input', event => {
   const { name, value, checked } = event.target;
   if (!name) return;
   if (name === 'master') {
-    for (const key of ['subject', 'style', 'materials', 'environment', 'landscape', 'details', 'foreground']) delete state.overrides[key];
     state.master = value;
-    state.rearTransparency = false;
     updateForm();
   } else if (name === 'preset') {
     const previous = result.values;
