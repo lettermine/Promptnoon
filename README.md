@@ -20,3 +20,7 @@ node --test
 ```
 
 Gunakan mode **Full Master** untuk mengaudit teks fotografi kanonik. Mode Standard adalah versi ringkas eksperimental.
+
+Deskripsi warna dan perilaku tonal ditautkan ke ID palet SQLite di `dist/palette-behavior.mjs`. Deskripsi tersebut diturunkan dari swatch yang disetujui.
+
+Untuk audit browser, instal Python Playwright dan jalankan `python tests/browser_audit.py` dengan Chromium. Jika executable Chromium berada di lokasi lain, set `CHROMIUM_PATH`.

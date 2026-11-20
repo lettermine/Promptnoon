@@ -118,3 +118,41 @@ test('clear sky takes precedence over overcast lighting', () => {
   assert.match(result.prompt, /mostly clear pale natural sky/);
   assert.doesNotMatch(result.prompt, /soft diffused overcast daylight/i);
 });
+
+test('all palettes render concrete color behavior rather than catalog names', () => {
+  for (const [id, palette] of palettes) {
+    const state = { ...fresh(), styleId: 'preset_04_01', dna: { palette: [id] } };
+    const output = assemble(state).blocks.find(block => block.startsWith('COLOR & LIGHTING:'));
+    assert.ok(output.includes('Build the palette around '), id);
+    assert.ok(!output.includes(palette.name), id);
+  }
+  const example = assemble({ ...fresh(), styleId: 'preset_04_01', dna: {} });
+  assert.match(example.prompt, /deep olive-green shadows, muted sage and moss midtones, and pale gray-green highlights/);
+  const accent = assemble({ ...fresh(), styleId: 'preset_01_03', dna: {} });
+  assert.match(accent.prompt, /Use small accents of umber/);
+  const manual = assemble({ ...fresh(), styleId: 'preset_04_01', dna: {}, overrides: { palette: 'cobalt and gold' } });
+  assert.match(manual.prompt, /Use this color palette: cobalt and gold/);
+  assert.doesNotMatch(manual.prompt, /deep olive-green shadows/);
+});
+
+test('geography relates compatible landforms, seasons, sky and water', () => {
+  const state = { ...fresh('urban_cozy'), styleId: 'preset_07_03', dna: {
+    environment: ['environment.coastal_town'], water: ['water.cascading_waterfall']
+  }};
+  const coastal = assemble(state);
+  assert.deepEqual(coastal.warnings, []);
+  assert.match(coastal.prompt, /freshwater feature distinct from the sea/);
+  assert.match(coastal.prompt, /cascade upstream of the still water/);
+  assert.match(coastal.prompt, /Keep pedestrian access clear/);
+  assert.match(coastal.prompt, /visible background: lakeside scenery/);
+  const alpine = assemble({ ...state, dna: {
+    environment: ['environment.coastal_town'],
+    landscape: ['landscape.alpine_mountains'],
+    season: ['season.spring_bloom'],
+    sky: ['sky.alpine_cloud_bank']
+  }});
+  assert.deepEqual(alpine.warnings, []);
+  assert.match(alpine.prompt, /Keep the sea at the lowest elevation/);
+  assert.match(alpine.prompt, /spring blooms on sheltered lower slopes/);
+  assert.match(alpine.prompt, /cloud bank near mountain peaks/);
+});

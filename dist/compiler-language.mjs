@@ -67,7 +67,12 @@ export function describeTime(value) {
   return sentence('Set the time of day: ', value);
 }
 
-export function describePalette(value) {
+export function describePalette(value, palette = []) {
+  if (palette.length) return palette.map(({ role, colors, behavior }) => {
+    const introduction = role === 'primary' ? 'Build the palette around ' :
+      role === 'secondary' ? 'Use these supporting tones where they fit the scene: ' : 'Use small accents of ';
+    return introduction + colors + '. ' + behavior + '.';
+  }).join(' ');
   return value ? 'Use this color palette: ' + value.trim().replace(/[.!?]+$/, '') + '.' : '';
 }
 
